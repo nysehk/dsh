@@ -440,6 +440,8 @@ export type Config = LocalConfig
 ```ts config-catalog
 /** Browser authentication, request limits, and connection recovery configuration. */
 export interface ConnectionConfig {
+  /** Deployment login replacing launch-token authentication when configured. */
+  localLogin?: LocalLoginConfig | undefined
   /** Browser recovery timing, injected into each served page. */
   recovery?: ConnectionRecoveryConfig
   /**
@@ -455,6 +457,14 @@ export interface ConnectionConfig {
   cookieMaxAgeDays?: number
   /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
   maxRequestBodyBytes?: number
+}
+
+/** Deployment-owned Web credentials; never returned to the browser. */
+export interface LocalLoginConfig {
+  /** Exact account name. */
+  username: string
+  /** Exact password. */
+  password: string
 }
 
 /** Timing for generation readiness and automatic reconnection. */

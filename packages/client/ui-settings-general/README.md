@@ -9,6 +9,8 @@ English | [中文](README.zh.md)
 
 ## Summary
 
+For password-authenticated Web deployments, the sidebar footer displays the deployment username with Settings and Sign out actions. Sign out asks for confirmation, clears the current browser session and returns to the local login page; stored data and running tasks remain on the Host.
+
 Use this package to give the dsh web client a Settings panel, connection-recovery control, feature-contributed navigation, and sequential first-run onboarding. Users can open it from the sidebar, retry a failed connection immediately, and access a local configuration file when the Host makes one available on a loopback browser. Feature packages supply their own settings rows, sections, and onboarding steps; this package supplies their shared presentation and the Coding Tools switch without adding onboarding copy.
 
 ## Table of Contents

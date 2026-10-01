@@ -91,6 +91,41 @@ afterEach(() => {
 })
 
 describe('BrowserAuth', () => {
+  it('uses configured credentials and invalidates password cookies after credential changes', async () => {
+    const store = new RecordCredentials()
+    const owner = {}
+    const auth = await BrowserAuth.create(owner, credentials(store), 30, { username: 'user', password: '123456dshZz' })
+    const signIn = (value: unknown, method = 'POST') => auth.signIn(new Request('http://dsh.invalid/auth/login', {
+      method, headers: { host: '127.0.0.1:3080' },
+      ...method === 'POST' ? { body: JSON.stringify(value) } : {},
+    }))
+    expect(auth.authenticatedUrl('http://127.0.0.1:3080')).toBe('http://127.0.0.1:3080/')
+    expect((await signIn({ username: 'other', password: '123456dshZz' })).status).toBe(401)
+    expect((await signIn({ username: 'user', password: 'wrong' })).status).toBe(401)
+    expect((await signIn({ username: 'user' })).status).toBe(400)
+    expect((await signIn(null, 'GET')).status).toBe(405)
+    const accepted = await signIn({ username: 'user', password: '123456dshZz' })
+    expect(accepted.status).toBe(204)
+    const cookie = accepted.headers.get('set-cookie')!.split(';')[0]!
+    const req = request('/', '127.0.0.1:3080', { cookie })
+    expect(auth.isAuthenticated(req)).toBe(true)
+    const logout = auth.signOut(new Request('http://127.0.0.1:3080/auth/logout', {
+      method: 'POST', headers: { host: '127.0.0.1:3080' },
+    }))
+    expect(logout.status).toBe(204)
+    expect(logout.headers.get('set-cookie')).toContain(`${cookie.split('=')[0]}=; Max-Age=0; Path=/;`)
+    expect(auth.signOut(new Request('http://127.0.0.1:3080/auth/logout')).status).toBe(405)
+    expect(auth.signOut(new Request('http://127.0.0.1:3080/auth/logout', { method: 'POST' })).status).toBe(400)
+    const restarted = await BrowserAuth.create({}, credentials(store), 30, { username: 'user', password: '123456dshZz' })
+    expect(restarted.isAuthenticated(req)).toBe(true)
+    const changed = await BrowserAuth.create(owner, credentials(store), 30, { username: 'user', password: 'changed' })
+    expect(changed.isAuthenticated(req)).toBe(false)
+    const tokenOnly = await createAuth(store, 30, owner)
+    const tokenRequest = request(new URL(tokenOnly.authenticatedUrl('http://127.0.0.1:3080')).search)
+    const denied = response()
+    expect(auth.authorizeIndex(tokenRequest, denied.value)).toBe(false)
+    expect(denied.state.headers?.location).toBe('./login.html')
+  })
   it('mints one process token and a persistent authority-bound cookie', async () => {
     const store = new RecordCredentials()
     const processOwner = {}

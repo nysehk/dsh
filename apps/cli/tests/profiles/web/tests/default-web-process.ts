@@ -207,3 +207,16 @@ export function webRequest(
     request.end(options.body)
   })
 }
+
+/**
+ * Authenticate the test-owned shipped Web profile without inheriting proxy dispatchers.
+ * @param url - Readiness URL.
+ * @param signal - Owning test cancellation signal.
+ * @returns Login response with the signed cookie.
+ */
+export function webSignIn(url: string, signal: AbortSignal) {
+  return webRequest(new URL('./auth/login', url), signal, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username: 'user', password: '123456dshZz' }),
+  })
+}

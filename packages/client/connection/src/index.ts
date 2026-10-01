@@ -8,8 +8,8 @@ import type {} from '@deepseek-ai/dsh-credentials'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import { API_PATH } from './api-path.ts'
 import { bridge, DEFAULT_MAX_REQUEST_BODY_BYTES } from './http-bridge.ts'
-import { assertTrustedAuthority } from './api-request-trust.ts'
-import { BrowserAuth } from './browser-auth.ts'
+import { assertTrustedAuthority, isTrustedApiRequest } from './api-request-trust.ts'
+import { BrowserAuth, type LocalLoginConfig } from './browser-auth.ts'
 import { HostConnectionService } from './rpc-host.ts'
 import { ConnectionRecoveryConfigSchema, resolveConnectionConfig, type ConnectionRecoveryConfig } from './recovery-config.ts'
 
@@ -90,6 +90,8 @@ export const inject = ['credentials']
 
 /** Browser authentication, request limits, and connection recovery configuration. */
 export interface ConnectionConfig {
+  /** Deployment login replacing launch-token authentication when configured. */
+  localLogin?: LocalLoginConfig | undefined
   /** Browser recovery timing, injected into each served page. */
   recovery?: ConnectionRecoveryConfig
   /**
@@ -108,6 +110,10 @@ export interface ConnectionConfig {
 }
 
 export const Config: z<ConnectionConfig> = z.object({
+  localLogin: z.union([z.const(undefined), z.object({
+    username: z.string().min(1).required(),
+    password: z.string().min(1).required(),
+  })]),
   recovery: ConnectionRecoveryConfigSchema.default({}),
   trustedHosts: z.array(String).default([]),
   cookieMaxAgeDays: z.natural().min(1).default(30),
@@ -131,15 +137,47 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
   // silently authorizing its hostname prefix at request time.
   for (const entry of trustedHosts) assertTrustedAuthority(entry)
   assertImageBodyCapacity(ctx, maxRequestBodyBytes)
+  const browserAuth = await BrowserAuth.create(ctx.root, ctx.credentials, cookieMaxAgeDays, config?.localLogin)
   const connection = new HostConnectionService(
     ctx,
     trustedHosts,
-    await BrowserAuth.create(ctx.root, ctx.credentials, cookieMaxAgeDays),
+    browserAuth,
   )
   ctx.inject(['webServer'], (webCtx) => {
+    if (config?.localLogin !== undefined) {
+      webCtx.effect(() => webCtx.webServer.register({
+        kind: 'exact', path: '/auth/login', handler: async (req, res) => {
+          if (!isTrustedApiRequest(req, trustedHosts)) {
+            res.writeHead(403)
+            res.end()
+            return
+          }
+          await bridge(req, res, {
+            requestBodyMode: () => 'buffered',
+            fetch: request => browserAuth.signIn(request),
+          }, 4096)
+        },
+      }), 'client-connection: local login route')
+      webCtx.effect(() => webCtx.webServer.register({
+        kind: 'exact', path: '/auth/logout', handler: async (req, res) => {
+          if (!isTrustedApiRequest(req, trustedHosts)) {
+            res.writeHead(403)
+            res.end()
+            return
+          }
+          await bridge(req, res, {
+            requestBodyMode: () => 'buffered',
+            fetch: request => Promise.resolve(browserAuth.signOut(request)),
+          }, 4096)
+        },
+      }), 'client-connection: local logout route')
+    }
     assertImageBodyCapacity(webCtx, maxRequestBodyBytes)
     webCtx.on('webserver/index-inject', (table) => {
       table.push({ kind: 'global', name: '__DSH_CONNECTION_RECOVERY__', value: recovery })
+      if (config?.localLogin !== undefined) {
+        table.push({ kind: 'global', name: '__DSH_LOCAL_ACCOUNT__', value: config.localLogin.username })
+      }
     })
     const fetchHandler = connection.createSharedFetchHandler(API_PATH)
     const route: WebRoute = {

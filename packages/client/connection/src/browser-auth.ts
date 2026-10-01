@@ -24,6 +24,14 @@ interface StoredSecretPayload {
   readonly secret: string
 }
 
+/** Deployment-owned Web credentials; never returned to the browser. */
+export interface LocalLoginConfig {
+  /** Exact account name. */
+  username: string
+  /** Exact password. */
+  password: string
+}
+
 interface BrowserCookiePayload {
   readonly version: typeof COOKIE_PAYLOAD_VERSION
   readonly authority: string
@@ -178,7 +186,7 @@ async function initializeSecret(credentials: CredentialProvider): Promise<Buffer
 }
 
 /**
- * Process launch-token exchange and persistent signed-cookie verification.
+ * Deployment-password or process-token exchange and persistent signed-cookie verification.
  * Connection loads the credential provider's signing secret during activation
  * and retains it for synchronous request authentication.
  */
@@ -190,6 +198,7 @@ export class BrowserAuth {
     processOwner: object,
     private readonly secret: Buffer,
     maxAgeDays: number,
+    private readonly localLogin?: LocalLoginConfig,
   ) {
     this.launchToken = processLaunchToken(processOwner)
     this.maxAgeMilliseconds = maxAgeDays * DAY_MILLISECONDS
@@ -205,37 +214,46 @@ export class BrowserAuth {
    * @param processOwner - root application context retaining one token across Connection reloads.
    * @param credentials - persistent credential provider for the Web profile.
    * @param maxAgeDays - positive absolute browser-cookie lifetime in days.
+   * @param localLogin - optional deployment credentials replacing browser launch-token exchange.
    * @returns initialized authentication owner with the process owner's launch token.
    */
   static async create(
     processOwner: object,
     credentials: CredentialProvider,
     maxAgeDays: number,
+    localLogin?: LocalLoginConfig,
   ): Promise<BrowserAuth> {
-    return new BrowserAuth(processOwner, await initializeSecret(credentials), maxAgeDays)
+    return new BrowserAuth(processOwner, await initializeSecret(credentials), maxAgeDays, localLogin)
   }
 
   /**
-   * Add this process's launch token to the caller's application URL.
+   * Resolve the browser entry URL for the configured login mode.
    * @param baseUrl - clean browser URL whose authority and mount are preserved.
-   * @returns the same URL carrying the process token as its sole authentication input.
+   * @returns clean URL for password login, otherwise a URL carrying this process's token.
    */
   authenticatedUrl(baseUrl: string): string {
     const url = new URL(baseUrl)
+    if (this.localLogin !== undefined) return url.href
     url.searchParams.set(TOKEN_QUERY, this.launchToken)
     return url.href
   }
 
   /**
-   * Authenticate an index request. A valid root query token mints the cookie
-   * and redirects to the directory-relative clean `./`; a valid cookie lets
-   * the caller serve the index; every other request receives the same minimal
-   * 401 response.
+   * Authenticate an index request. Password mode redirects unauthenticated
+   * browsers to the local login page. Token mode exchanges a valid root query
+   * token for a cookie and redirects to `./`, otherwise returns 401.
+   * A valid cookie lets the caller serve the index in either mode.
    * @param req - incoming root or configured-index request.
    * @param res - response owned when this method returns false.
    * @returns true only when the caller may serve index.html.
    */
   authorizeIndex(req: ConnectionIndexRequest, res: ConnectionIndexResponse): boolean {
+    if (this.localLogin !== undefined) {
+      if (this.isAuthenticated(req)) return true
+      res.writeHead(303, { 'location': './login.html', 'cache-control': 'no-store' })
+      res.end()
+      return false
+    }
     /* v8 ignore next -- node:http always supplies url on server requests. */
     const url = new URL(req.url ?? '/', 'http://dsh.invalid')
     const tokens = url.searchParams.getAll(TOKEN_QUERY)
@@ -290,13 +308,64 @@ export class BrowserAuth {
     if (authority === undefined || rawCookie === undefined) return false
     const value = cookieValue(rawCookie, cookieName(authority))
     if (value === undefined) return false
-    const payload = decodeCookie(value, this.secret)
+    const payload = decodeCookie(value, this.cookieSecret())
     if (payload === undefined || payload.authority !== authority) return false
     const now = Date.now()
     return payload.issuedAt <= now
       && payload.expiresAt > now
       && payload.expiresAt > payload.issuedAt
       && payload.expiresAt - payload.issuedAt <= this.maxAgeMilliseconds
+  }
+
+  /**
+   * Exchange validated deployment credentials for the existing signed browser cookie.
+   * @param request - trusted same-origin login POST, with a bounded JSON body.
+   * @returns response carrying a cookie only when both credentials match.
+   */
+  async signIn(request: Request): Promise<Response> {
+    if (this.localLogin === undefined) return new Response(null, { status: 404 })
+    if (request.method !== 'POST') return new Response(null, { status: 405 })
+    let value: unknown
+    try { value = await request.json() } catch (_error) {
+      // Invalid JSON never authenticates a browser.
+      return new Response(null, { status: 400 })
+    }
+    if (!isRecord(value) || typeof value.username !== 'string' || typeof value.password !== 'string') {
+      return new Response(null, { status: 400 })
+    }
+    const usernameMatches = tokenMatches(value.username, this.localLogin.username)
+    const passwordMatches = tokenMatches(value.password, this.localLogin.password)
+    if (!usernameMatches || !passwordMatches) return new Response(null, { status: 401 })
+    const authority = requestAuthority(request.headers)
+    if (authority === undefined) return new Response(null, { status: 400 })
+    const issuedAt = Date.now()
+    const expiresAt = issuedAt + this.maxAgeMilliseconds
+    // Credential edits invalidate password-authenticated cookies without deleting desktop cookies.
+    const secret = this.cookieSecret()
+    const cookie = encodeCookie({ version: COOKIE_PAYLOAD_VERSION, authority, issuedAt, expiresAt }, secret)
+    return new Response(null, { status: 204, headers: {
+      'cache-control': 'no-store',
+      'set-cookie': sessionCookie(cookieName(authority), cookie, expiresAt, Math.floor(this.maxAgeMilliseconds / 1000)),
+    } })
+  }
+
+  /** Clear this browser's session cookie without changing the deployment account.
+   * @param request - same-origin logout request.
+   * @returns logout response with an expired cookie.
+   */
+  signOut(request: Request): Response {
+    if (request.method !== 'POST') return new Response(null, { status: 405 })
+    const authority = requestAuthority(request.headers)
+    if (authority === undefined) return new Response(null, { status: 400 })
+    return new Response(null, { status: 204, headers: {
+      'cache-control': 'no-store',
+      'set-cookie': sessionCookie(cookieName(authority), '', 0, 0),
+    } })
+  }
+
+  private cookieSecret(): Buffer {
+    return this.localLogin === undefined ? this.secret : createHmac('sha256', this.secret)
+      .update(JSON.stringify([this.localLogin.username, this.localLogin.password])).digest()
   }
 
   private writeUnauthorized(req: ConnectionIndexRequest, res: ConnectionIndexResponse): void {

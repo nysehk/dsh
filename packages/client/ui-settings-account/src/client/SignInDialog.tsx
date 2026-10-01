@@ -5,7 +5,7 @@ import type { AccountSnapshot } from './AccountSection.tsx'
 import type { SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { AccountKey } from './locales.ts'
 import { authorizeUrlWithTheme } from './authorize-url.ts'
-import css from './SignInDialog.module.css'
+import css from '../../../ui-theme/src/styles/sign-in-dialog.module.css'
 
 /** @param props - safe account state, localized copy, and user actions. @returns login dialog. */
 export function SignInDialog({ account, colorScheme, start, cancel, close, useApiKey, t }: {

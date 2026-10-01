@@ -25,9 +25,36 @@ function derivedDocumentStore(remote: object) {
 import { en, zh } from '../src/client/locales.ts'
 import { CurrentVersionRow } from '../src/client/CurrentVersionRow.tsx'
 import { DesktopUpdateBadge } from '../src/client/DesktopUpdateIndicator.tsx'
+import { WebAccountMenu } from '../src/client/WebAccountMenu.tsx'
 import type { DesktopUpdateView } from '../src/types.ts'
 
 afterEach(() => { cleanup(); vi.unstubAllEnvs() })
+
+it('opens deployment account settings and confirms logout without removing data', async () => {
+  const openSettings = vi.fn()
+  const fetchCall = vi.fn().mockResolvedValue(new Response(null, { status: 500 }))
+  vi.stubGlobal('fetch', fetchCall)
+  try {
+    render(<WebAccountMenu {...kit} t={t} username="operator" wide settingsOpen={false}
+      openSettings={openSettings} openOnboarding={() => {}} />)
+    expect(screen.getByRole('button', { name: 'Account menu: operator' }).textContent).toBe('operator')
+    fireEvent.click(screen.getByRole('button', { name: 'Account menu: operator' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Settings' }))
+    expect(openSettings).toHaveBeenCalledOnce()
+    fireEvent.click(screen.getByRole('button', { name: 'Account menu: operator' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }))
+    expect(screen.getByRole('dialog').textContent).toMatchInlineSnapshot('"Sign outSigning out keeps your data. You can sign in again. Running tasks will continue.CancelSign out"')
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(fetchCall).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Account menu: operator' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe(en['account.failed']) })
+    expect(fetchCall).toHaveBeenCalledWith('./auth/logout', { method: 'POST', credentials: 'same-origin' })
+    expect(screen.getByRole('dialog')).toBeTruthy()
+  } finally { vi.unstubAllGlobals() }
+})
 
 // The seat's key domain is settings ∪ common; the stub answers from the
 // package dictionary and falls back to the key like the real chain.

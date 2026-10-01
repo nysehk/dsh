@@ -1,5 +1,6 @@
 /** Real `dsh web` authentication against a temporary Harness home. */
 
+import { signInWeb } from './web-login.ts'
 import type { ChildProcess } from 'node:child_process'
 import { spawn } from 'node:child_process'
 import { stat } from 'node:fs/promises'
@@ -163,18 +164,17 @@ describe('dsh web authentication through the real CLI', () => {
       const firstUrl = new URL(first.launchUrl)
       expect(firstUrl.origin).toBe(`http://127.0.0.1:${String(port)}`)
       expect(firstUrl.pathname).toBe('/')
-      expect(firstUrl.searchParams.get('token')).toMatch(/^[A-Za-z0-9_-]{43}$/u)
+      expect(firstUrl.search).toBe('')
 
       expect(await describeSettings(port, `localhost:${String(port)}`)).toEqual({
         status: 401,
         body: 'unauthorized',
       })
 
-      const exchange = await fetch(first.launchUrl, { redirect: 'manual' })
-      expect(exchange.status).toBe(303)
-      expect(exchange.headers.get('location')).toBe('./')
+      const exchange = await signInWeb(first.launchUrl)
+      expect(exchange.status).toBe(204)
       const setCookie = exchange.headers.get('set-cookie')
-      if (setCookie === null) throw new Error('real CLI token exchange omitted Set-Cookie')
+      if (setCookie === null) throw new Error('real CLI password login omitted Set-Cookie')
       expect(setCookie).toContain('HttpOnly')
       expect(setCookie).toContain('SameSite=Strict')
       expect(setCookie).not.toContain('Secure')
@@ -193,11 +193,11 @@ describe('dsh web authentication through the real CLI', () => {
       first = undefined
       second = await startWeb(root, dshHome, port)
       const secondUrl = new URL(second.launchUrl)
-      expect(secondUrl.searchParams.get('token')).not.toBe(firstUrl.searchParams.get('token'))
+      expect(secondUrl.search).toBe('')
       expect((await describeSettings(port, secondUrl.host, cookie)).status).toBe(200)
 
       const credentialMode = (await stat(join(dshHome, '.credentials.yaml'))).mode & 0o777
-      expect(credentialMode).toBe(0o600)
+      if (process.platform !== 'win32') expect(credentialMode).toBe(0o600)
     } catch (error) {
       const evidence = [first?.output(), second?.output()].filter(value => value !== undefined).join('\n')
       throw new Error(`${error instanceof Error ? error.message : String(error)}\n${redact(evidence)}`, { cause: error })

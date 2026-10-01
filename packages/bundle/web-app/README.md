@@ -38,7 +38,7 @@ dsh --profile web
 dsh --profile web --no-open --port 8080
 ```
 
-After startup you see a `dsh web:` line whose root URL carries a fresh process token. Unless `--no-open` or an SSH session suppresses it, the default browser opens that URL, receives a signed cookie, and redirects to the same directory without the token. You know it worked when the page loads and you can chat with the agent. Two failures to expect: if the frontend is not built, startup stops with a build hint (`pnpm run build` in a checkout); if the browser cannot be opened, a credential-free diagnostic prints to stderr while the server keeps running — open the printed startup URL yourself.
+After startup, `dsh web:` prints a clean URL. The browser opens the local DSH login page unless `--no-open` or SSH suppresses the handoff. Sign in with username `user` and password `123456dshZz`; authentication stays on this server and issues a signed browser cookie. This login grants access to the Harness operator and does not configure a DeepSeek inference account. Missing frontend assets stop startup with a build hint; a failed browser handoff leaves the server running.
 
 **Settings → Models** displays **DeepSeek**, using `DEEPSEEK_API_KEY`. The default is `deepseek-official` / `deepseek-flash` (DeepSeek-V41-Flash). The [DeepSeek plugin](../../llm/llm-deepseek/README.md#endpoint-and-wire-format) uses the Messages API.
 
@@ -59,7 +59,20 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 
 ### LAN access and trusted hosts
 
-By default the GUI accepts connections from this machine only. A deployment that binds all network interfaces also allows browsers from the LAN, and the printed URL then includes a LAN address; `--trusted-host` adds extra hosts in either case. Host and Origin checks control reachability, while the token exchange authenticates every Host API method and WebSocket stream. The LAN addresses are sampled once at startup, so a network change later is not picked up — restart the GUI to re-advertise.
+By default the GUI accepts connections from this machine only. Run `dsh web --host 0.0.0.0` for LAN access; the printed LAN URL uses the same login page. `--trusted-host` adds deployment authorities. Host/Origin checks restrict browser requests, and password cookies authenticate API methods and WebSocket streams. LAN addresses are sampled once at startup; restart after an interface change.
+
+### Deployment account
+
+Set the `connection` row in `$DSH_HOME/profiles/web/cordis.patch.yml` to change the credentials. Preserve the derived trusted hosts for LAN access, then restart the server:
+
+```yaml
+- id: connection
+  config:
+    trustedHosts: !!js ctx.webRuntime.trustedHosts
+    localLogin:
+      username: user
+      password: 123456dshZz
+```
 
 ### Running over SSH
 
@@ -155,7 +168,7 @@ These limits tell you what to expect in unusual setups — a source checkout, SS
 - **Only the handoff start is observable** — the GUI reports that the browser was asked to open, not that it actually opened; a later browser exit is never reported, and the printed URL is your manual fallback.
 - **SSH sessions keep the URL but skip the browser handoff** — the printed URL names the remote host's loopback endpoint; the SSH client or editor must expose and open the local forwarded address.
 - **`BROWSER` overrides only come from the environment** — a discovered `.env` cannot set `BROWSER`; only an inherited value can choose the executable for the automatic handoff.
-- **Binding all network interfaces is not supported** — `--host 0.0.0.0` is rejected at startup for safety; use the default loopback host.
+- **One deployment account** — the Web login represents the shared operator; separate user permissions are unsupported.
 
 <a id="dev-note"></a>
 ### Dev Note

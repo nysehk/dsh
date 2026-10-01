@@ -11,6 +11,8 @@ English | [中文](README.zh.md)
 
 `dsh-client-ui-theme` lets Web GUI users choose `light`, `dark`, or `system` and set conversation content text from 10 to 22 px in Settings. A loopback client stores both values in the `ui-theme` settings namespace, which the local provider persists in `$DSH_HOME/cordis.patch.yml` by default. The plugin resolves `system` through `prefers-color-scheme` and publishes immutable `ThemeSnapshot`s; ui-layout applies each snapshot to the document. The package also ships the `--dsw-*` token stylesheets and injects a synchronous bootstrap so the selected palette and font size apply before the shell loads. Third-party themes can register alias-token overrides through `ctx.theme`.
 
+The source stylesheets `src/styles/sign-in-dialog.module.css` and `src/styles/account-menu.module.css` supply shared desktop and Web account-dialog and sidebar-menu styling.
+
 ## Table of Contents
 
 - [Use this package](#use-this-package)

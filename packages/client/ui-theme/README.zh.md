@@ -11,6 +11,8 @@ kind: "package-reference"
 
 `dsh-client-ui-theme` 让 Web GUI 用户在设置中选择 `light`、`dark` 或 `system`，并把会话正文字号设为 10 至 22 px。回环客户端把两个值存入 `ui-theme` 设置命名空间，本地提供方默认将其持久化到 `$DSH_HOME/cordis.patch.yml`。插件通过 `prefers-color-scheme` 解析 `system` 并发布不可变的 `ThemeSnapshot`；ui-layout 把每份快照应用到文档。本包还提供 `--dsw-*` token 样式表，并注入同步引导，使所选调色板与字号在外壳加载前生效。第三方主题可通过 `ctx.theme` 注册别名 token 覆盖。
 
+源样式表 `src/styles/sign-in-dialog.module.css` 和 `src/styles/account-menu.module.css` 供桌面端与 Web 复用账号弹窗和侧边栏菜单样式。
+
 ## 目录
 
 - [使用本包](#use-this-package)

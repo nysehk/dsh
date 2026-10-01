@@ -1,3 +1,4 @@
+import { signInWeb } from '../../../web-login.ts'
 /** Built Web-profile acceptance for best-effort initial plugin activation. */
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -160,7 +161,7 @@ describe.skipIf(!builtArtifactsExist)('dsh Web profile best-effort startup', () 
     let events = ''
     try {
       const startup = await waitForStartup(child.stdout, child.stderr, child)
-      const auth = await fetch(startup.url, { redirect: 'manual' })
+      const auth = await signInWeb(startup.url)
       const cookie = auth.headers.get('set-cookie')?.split(';', 1)[0]
       if (cookie === undefined) throw new Error('Web authentication response did not set a cookie')
       const page = await fetch(new URL('/', startup.url), { headers: { cookie } })

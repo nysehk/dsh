@@ -1,3 +1,4 @@
+import { signInWeb } from './web-login.ts'
 // Real-host smoke: spawn `dsh web` with a real key, walk the full flow
 // list in a real chromium, screenshot every screen into .artifacts/ for the
 // figma comparison pass. Self-skips without DEEPSEEK_API_KEY (repo e2e
@@ -46,14 +47,14 @@ function messagesResponse(text: string, complete = true): string {
   return events.map(event => `data: ${JSON.stringify(event)}\n\n`).join('')
 }
 
-/** Exchange a printed process token once for Node-side HTTP/WebSocket probes. */
+/** Authenticate the shipped Web profile once for Node-side HTTP/WebSocket probes. */
 function authenticatedWeb(launchUrl: string): Promise<{ origin: string; cookie: string }> {
   const existing = authenticatedCookies.get(launchUrl)
   if (existing !== undefined) return existing
   const exchange = (async () => {
-    const response = await fetch(launchUrl, { redirect: 'manual' })
+    const response = await signInWeb(launchUrl)
     const setCookie = response.headers.get('set-cookie')
-    if (response.status !== 303 || setCookie === null) {
+    if (response.status !== 204 && response.status !== 303 || setCookie === null) {
       throw new Error(`dsh web authentication returned HTTP ${String(response.status)}`)
     }
     return {
@@ -331,7 +332,7 @@ describe('dsh web keyless CLI smoke', () => {
     let browser: Browser | undefined
     try {
       const readyUrl = await waitForReadyLine(child)
-      expect(readyUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/\?token=[A-Za-z0-9_-]+$/u)
+      expect(readyUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/$/u)
       expect((await fetch(readyUrl, { redirect: 'manual' })).status).toBe(303)
       browser = await chromium.launch({ headless: true })
       const page = await newEnglishPage(browser)
@@ -354,6 +355,9 @@ describe('dsh web keyless CLI smoke', () => {
         }
       })
       await page.goto(readyUrl)
+      await page.getByLabel('Username', { exact: true }).fill('user')
+      await page.getByLabel('Password', { exact: true }).fill('123456dshZz')
+      await page.getByRole('button', { name: 'Sign in', exact: true }).click()
       await page.getByRole('button', { name: 'New session', exact: true }).first().waitFor({ timeout: 30_000 })
       const batchPaths = [...new Set(pluginScripts)].sort()
       // The bootstrap phase is the modules package alone; the application phase
@@ -711,6 +715,9 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY || notReady.length > 0)('web smoke
     page = await newEnglishPage(browser)
     page.on('pageerror', e => pageErrors.push(String(e)))
     await page.goto(baseUrl, { waitUntil: 'load' })
+    await page.getByLabel('Username', { exact: true }).fill('user')
+    await page.getByLabel('Password', { exact: true }).fill('123456dshZz')
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   }, 120_000)
 
   afterAll(async () => {

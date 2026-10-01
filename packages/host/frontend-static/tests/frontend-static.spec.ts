@@ -30,7 +30,7 @@ afterEach(async () => {
 })
 
 /** Write a dist fixture and the authenticated Web rows, then boot them through the real Loader. */
-async function loadComposition(): Promise<Context> {
+async function loadComposition(passwordLogin = false): Promise<Context> {
   root = await mkdtemp(join(tmpdir(), 'dsh-frontend-static-'))
   const dist = join(root, 'dist')
   await mkdir(dist)
@@ -51,6 +51,7 @@ async function loadComposition(): Promise<Context> {
     "    host: '127.0.0.1'",
     '    port: 0',
     "- name: '@deepseek-ai/dsh-client-connection'",
+    ...passwordLogin ? ['  config:', '    localLogin:', '      username: user', '      password: 123456dshZz'] : [],
     '- id: frontend',
     "  name: '@deepseek-ai/dsh-host-frontend-static'",
     '  config:',
@@ -94,6 +95,41 @@ async function request(port: number, path: string, init?: RequestInit): Promise<
 }
 
 describe('real Loader composition', () => {
+  it('requires local credentials before serving the index and removes the login route on disposal', async () => {
+    const loaded = await loadComposition(true)
+    const origin = `http://127.0.0.1:${String(loaded.webServer.port)}`
+    expect(loaded.connection.authenticatedUrl(origin)).toBe(origin + '/')
+    const initial = await fetch(origin, { redirect: 'manual' })
+    expect(initial.status).toBe(303)
+    expect(initial.headers.get('location')).toBe('./login.html')
+    const login = (password: string, extra?: Record<string, string>) => fetch(origin + '/auth/login', {
+      method: 'POST', headers: { 'content-type': 'application/json', ...extra },
+      body: JSON.stringify({ username: 'user', password }),
+    })
+    expect((await login('wrong')).status).toBe(401)
+    expect((await login('123456dshZz', { origin: 'https://other.example' })).status).toBe(403)
+    expect((await fetch(origin + '/auth/login', { method: 'POST', body: 'broken' })).status).toBe(400)
+    expect((await fetch(origin + '/auth/login', { method: 'POST', body: 'x'.repeat(4097) })).status).toBe(413)
+    expect((await fetch(origin + '/api/unknown')).status).toBe(401)
+    const accepted = await login('123456dshZz')
+    expect(accepted.status).toBe(204)
+    const cookie = accepted.headers.get('set-cookie')?.split(';')[0]
+    expect(cookie).toBeDefined()
+    expect(accepted.headers.get('set-cookie')).toContain('HttpOnly; SameSite=Strict')
+    const index = await fetch(origin, { headers: { cookie: cookie! } })
+    expect(index.status).toBe(200)
+    expect(await index.text()).toContain('shell')
+    const logout = await fetch(origin + '/auth/logout', { method: 'POST', headers: { origin, cookie: cookie! } })
+    expect(logout.status).toBe(204)
+    expect(logout.headers.get('set-cookie')).toContain('Max-Age=0; Path=/;')
+    expect((await fetch(origin + '/auth/logout', { method: 'POST', headers: { origin: 'https://other.invalid' } })).status).toBe(403)
+    expect((await fetch(origin + '/auth/logout')).status).toBe(405)
+    expect((await fetch(origin, { redirect: 'manual' })).headers.get('location')).toBe('./login.html')
+    const row = [...loaded.loader.entries()].find(entry => entry.options.name === '@deepseek-ai/dsh-client-connection')
+    await row!.fiber!.dispose()
+    expect((await fetch(origin + '/auth/login', { method: 'POST' })).status).toBe(404)
+    expect((await fetch(origin + '/auth/logout', { method: 'POST' })).status).toBe(404)
+  })
   it('serves explicit index entries and files while preserving HTTP error semantics', { timeout: 60_000 }, async () => {
     const loaded = await loadComposition()
     const unloaded = [...loaded.loader.entries()]

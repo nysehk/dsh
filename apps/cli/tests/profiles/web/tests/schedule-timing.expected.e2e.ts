@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { DailyScheduleRecord, ScheduleCatalogEntry } from '@deepseek-ai/dsh-schedule'
 import { expect, it } from 'vitest'
-import { withDefaultWeb, webGet, webRequest } from './default-web-process.ts'
+import { withDefaultWeb, webSignIn, webRequest } from './default-web-process.ts'
 
 /** The optional Schedule bundle is the switch this built-Web scenario turns on. */
 const patches = [fileURLToPath(new URL('../../../../../../packages/experimental/schedule-bundle/cordis.patch.yml', import.meta.url))]
@@ -36,7 +36,7 @@ function encoded(value: unknown): string {
 }
 
 async function connect(url: string, signal: AbortSignal) {
-  const auth = await webGet(url, signal)
+  const auth = await webSignIn(url, signal)
   const cookie = auth.headers['set-cookie']?.[0]?.split(';', 1)[0]
   if (cookie === undefined) throw new Error('Owned Web process did not issue its authentication cookie')
   return async (method: string, args: Record<string, unknown>) => {

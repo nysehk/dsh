@@ -4,13 +4,13 @@ import { FiberState } from '@deepseek-ai/cordis'
 import type { WebBootGraph } from '@deepseek-ai/dsh-client-modules/client'
 import { expect, it } from 'vitest'
 import { experimentalRuntimeReferences, modulePackage } from './runtime-roster.ts'
-import { withDefaultWeb, webGet } from './default-web-process.ts'
+import { withDefaultWeb, webGet, webSignIn } from './default-web-process.ts'
 
 const experimentalName = '@deepseek-ai/dsh-experimental-client-ui-agent-team'
 
 it('boots default Web without experimental modules, scheduling, time context, or an active built-in Browser', async (test) => {
   await withDefaultWeb(test, async ({ url, request }) => {
-    const auth = await webGet(url, test.signal)
+    const auth = await webSignIn(url, test.signal)
     const cookie = auth.headers['set-cookie']?.[0]?.split(';', 1)[0]
     expect(cookie).toBeDefined()
     const page = await webGet(new URL('/', url), test.signal, { cookie: cookie! })

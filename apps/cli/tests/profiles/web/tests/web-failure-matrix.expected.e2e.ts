@@ -1,3 +1,4 @@
+import { signInWeb } from '../../../web-login.ts'
 /** Failure policy through the built Web process and native configuration watcher. */
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -131,7 +132,7 @@ function start(f: ReturnType<typeof fixture>, extra: string[] = []) {
     await wait(() => /dsh web: http:\/\//u.test(stdout))
     const url = currentServer ? readFileSync(f.serverUrl, 'utf8') : /dsh web: (http:\/\/[^\s]+)/u.exec(stdout)?.[1]
     if (!url) throw new Error('Missing Web URL')
-    const auth = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(10_000) })
+    const auth = await signInWeb(url)
     const cookie = auth.headers.get('set-cookie')?.split(';', 1)[0]
     if (!cookie) throw new Error('Missing Web authentication cookie')
     const response = await fetch(new URL('/', url), { headers: { cookie }, signal: AbortSignal.timeout(10_000) })
