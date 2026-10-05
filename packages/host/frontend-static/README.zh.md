@@ -43,7 +43,7 @@ kind: "package-reference"
 
 所服务的 HTML 携带唯一的文档 base `<base href="./">`，位于每一条注入资源行之前，因此它冻结页面加载时所处的入口目录：shell 自身的应用目录相对引用与宿主的插件资源行都在服务该页面的挂载下解析。同一份 index 因而既服务源站根目录，也服务剥离前缀的代理所拥有的任一挂载；本插件只为 dist 根目录与配置的 index 路径渲染它。
 
-根路径与配置的 index 响应在读取 HTML 前调用 `ctx.connection.authorizeIndex`。Connection 根据认证模式校验浏览器 cookie、交换启动 token 或重定向到本地登录页。非 index 文件仍公开，包含独立的 `login.html`。凭据、cookie、过期时间和签名记录均归 Connection 所有。
+根路径与配置的 index 响应会在读取 HTML 前调用 `ctx.connection.authorizeIndex`。有效进程 token 会得到 303 重定向与持久浏览器 cookie；已有有效 cookie 时直接提供 index；其他 index 请求得到 Connection 所有的 401 响应。非 index 文件仍是公开静态资源。Token、cookie、过期时间与签名记录语义都归 Connection 所有。
 
 ### 可观察的失败
 
@@ -115,5 +115,3 @@ kind: "package-reference"
 无。
 
 </details>
-
-**运行时不变式：** 不发布伴生入口。唯一受本包所有的关系是单个回退席位，但无法从 teardown 流中探测它：`internal/plugin` 在正在释放的 fiber 执行 effect disposer 前触发，因此通知发出时合法所有者仍占据席位，任何占位探测都会把每次正确释放误报为失败；这不同于 webserver companion 对保留路径的探测，后者不会与存活注册冲突。席位的注册／释放对称性由本包真实组合的 HMR（热模块替换）安全测试覆盖。

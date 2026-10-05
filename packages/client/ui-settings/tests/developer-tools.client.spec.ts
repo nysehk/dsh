@@ -63,33 +63,20 @@ describe('developer tools settings', () => {
     expect(ctx.configForms.developerTools.enabled.getSnapshot()).toBe(false)
   })
 
-  it('loads and saves Host preferences from a LAN browser and disposes them with the plugin', async () => {
+  it('shares one remote-browser preference across consumers and disposes it with the plugin', async () => {
     const ctx = new Context()
     onTestFinished(() => ctx.fiber.dispose())
-    const namespace = {
-      ns: DEVELOPER_TOOLS_NAMESPACE,
-      schema: DeveloperToolsSettingsSchema.toJSON(),
-      value: { enabled: false }, revision: 1, autoGenerate: true, applies: 'live', secrets: [],
-    }
-    const describeCall = vi.fn().mockResolvedValue({ ok: true, value: {
-      writable: true, hasDocument: true, namespaces: [namespace],
-    } })
-    const mutate = vi.fn().mockResolvedValue({ ok: true, value: {
-      ...namespace, value: { enabled: true }, revision: 2,
-    } })
-    const remote = new TestRemote(ctx, { settings: { describe: describeCall, mutate } })
+    const describeCall = vi.fn()
+    const remote = new TestRemote(ctx, { settings: { describe: describeCall } })
     remote.$host = { home: undefined, isLoopback: false }
     const fiber = ctx.plugin({ inject, apply: clientApply })
     await fiber.await()
-    await ctx.configForms.describe().ensure()
     const preference = ctx.configForms.developerTools
     expect(fiber.ctx.configForms.developerTools.enabled).toBe(preference.enabled)
-    expect(preference.enabled.getSnapshot()).toBe(false)
-    expect(ctx.configForms.describe().getSnapshot().status).toBe('ready')
+    expect(preference.enabled.getSnapshot()).toBe(true)
     await preference.setEnabled(true)
     expect(fiber.ctx.configForms.developerTools.enabled.getSnapshot()).toBe(true)
-    expect(describeCall).toHaveBeenCalledOnce()
-    expect(mutate).toHaveBeenCalledWith(DEVELOPER_TOOLS_NAMESPACE, [{ op: 'set', path: ['enabled'], value: true }], 1)
+    expect(describeCall).not.toHaveBeenCalled()
     await fiber.dispose()
     expect(ctx.get('configForms')).toBeUndefined()
   })

@@ -1,0 +1,76 @@
+/* All phone corrections are owned here; upstream styles and modules stay intact.
+   Semantic dsh markers identify the shell. CSS-module local-name fragments are
+   used only within specific dialogs/cards; browser regression tests cover them. */
+.cloud-navigation { display: none; }
+.cloud-drawer-backdrop { display: none; }
+@media (min-width: 768px) {
+  [data-cloud-frame] { grid-template-rows: auto minmax(0, 1fr) auto; }
+  [data-cloud-sidebar] { grid-row: 1 / 3; }
+  [data-cloud-main], [data-cloud-right] { grid-row: 2; }
+  [data-cloud-main] { grid-column: 2; }
+  [data-cloud-right] { grid-column: 3; }
+  [data-shell-bottom] { grid-row: 3; }
+  .cloud-navigation { grid-row: 1; grid-column: 2 / 4; display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 0 12px; background: var(--dsw-alias-bg-base); }
+  .cloud-navigation [data-cloud-toggle], .cloud-navigation [data-cloud-new] { display: none; }
+}
+.cloud-navigation button { border: 0; border-radius: var(--dsw-radius-sm); background: transparent; color: var(--dsw-alias-label-primary); font: inherit; font-size: 13px; cursor: pointer; min-height: 40px; padding: 8px; }
+.cloud-navigation button:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.cloud-account-name { margin-left: auto; min-width: 0; max-width: 100px; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: var(--dsw-alias-label-secondary); }
+@media (max-width: 767px) {
+  html, body, #root { width: 100%; min-width: 0; height: 100dvh; margin: 0; -webkit-text-size-adjust: 100%; }
+  body { overflow: hidden; }
+  [data-cloud-frame] {
+    box-sizing: border-box;
+    height: var(--cloud-viewport-height, 100dvh) !important;
+    grid-template-columns: 0 minmax(0, 1fr) 0 !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+    --dsh-frame-leading-clearance: 0px;
+  }
+  .cloud-navigation { grid-column: 2; grid-row: 1; display: flex; align-items: center; gap: 4px; min-width: 0; min-height: 52px; padding: 4px 8px; background: var(--dsw-alias-bg-base); }
+  .cloud-navigation button { min-height: 44px; }
+  [data-cloud-main] { grid-column: 2; grid-row: 2; min-width: 0; }
+  [data-cloud-right] { grid-column: 3; grid-row: 2; }
+  [data-shell-bottom] { grid-row: 3; }
+  [data-cloud-frame] > [data-side] { display: none; }
+  [data-cloud-sidebar] { position: absolute; inset: 0 auto 0 0; z-index: 30; width: min(280px, calc(100% - 48px)); box-sizing: border-box; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); background: var(--dsw-specific-sidebar-fill); box-shadow: var(--dsw-elevation-prominent); }
+  [data-cloud-sidebar] > div { max-width: 100%; }
+  [data-sidebar-collapsed] > [data-cloud-sidebar] { visibility: hidden; pointer-events: none; }
+  [data-cloud-drawer-open] > .cloud-drawer-backdrop { position: absolute; inset: 0; z-index: 29; display: block; width: 100%; height: 100%; border: 0; background: var(--dsw-alias-bg-mask-1); cursor: pointer; }
+  /* Login and editable controls avoid Safari's automatic zoom below 16px. */
+  input, textarea, [contenteditable='true'] { font-size: max(16px, var(--dsh-content-font-size, 14px)) !important; }
+  [data-cloud-main] [class*='_header'] { padding-right: 12px; padding-left: 12px; }
+  [data-cloud-main] [class*='_headline'] { font-size: 22px; line-height: 30px; }
+  [data-cloud-main] [class*='_root']:has(> [class*='_stack']) { box-sizing: border-box; padding: 24px 12px; overflow-y: auto; }
+  [data-cloud-main] [class*='_composerSeat'] { --dsh-composer-text-max-height: min(336px, 30dvh); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  /* Settings become one column, with horizontally scrolling section tabs. */
+  [data-shortcut-modal='settings'] { flex-direction: column; width: calc(100vw - 24px); max-width: calc(100vw - 24px); height: calc(var(--cloud-visible-height, 100dvh) - 2 * max(12px, env(safe-area-inset-top), env(safe-area-inset-bottom))); }
+  [data-shortcut-modal='settings'] > [class*='_nav'] { width: 100%; padding: 12px 12px 0; gap: 8px; }
+  [data-shortcut-modal='settings'] [class*='_navTitle'] { display: none; }
+  [data-shortcut-modal='settings'] [class*='_navList'] { flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+  [data-shortcut-modal='settings'] [class*='_navCell'] { flex: none; min-height: 44px; }
+  [data-shortcut-modal='settings'] > [class*='_content'] { min-width: 0; min-height: 0; }
+  [data-shortcut-modal='settings'] [class*='_options'] { padding: 0 12px 16px; }
+  /* Provider names, actions, model rows and protocol controls cannot bid a fixed width. */
+  [data-shortcut-modal='settings'] [class*='_section'] { width: 100%; max-width: 100%; min-width: 0; }
+  [data-shortcut-modal='settings'] [class*='_rowHead'] { flex-wrap: wrap; row-gap: 8px; }
+  [data-shortcut-modal='settings'] [class*='_rowIdentity'] { max-width: 100%; }
+  [data-shortcut-modal='settings'] [class*='_rowName'] { overflow-wrap: anywhere; min-width: 0; }
+  [data-shortcut-modal='settings'] [class*='_rowActions'] { flex-shrink: 0; flex-wrap: wrap; }
+  [data-shortcut-modal='settings'] [class*='_modelRow'] { grid-template-columns: minmax(0, 1fr) auto auto; min-width: 0; }
+  [data-shortcut-modal='settings'] [class*='_modelRow'] > input:nth-of-type(1) { grid-column: 1 / -1; }
+  [data-shortcut-modal='settings'] [class*='_modelAdvanced'] { grid-template-columns: minmax(0, 1fr); }
+  [data-shortcut-modal='settings'] [class*='_modelEdit'], [data-shortcut-modal='settings'] [class*='_fieldRow'] { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+  [data-shortcut-modal='settings'] input, [data-shortcut-modal='settings'] select { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  [data-shortcut-modal='settings'] [class*='_tabs'] { flex-wrap: wrap; gap: 12px; }
+  /* Menus may scroll internally; their panels remain inside the phone viewport. */
+  [role='menu'], [role='listbox'] { box-sizing: border-box; max-width: calc(100vw - 24px) !important; min-width: min(180px, calc(100vw - 24px)) !important; max-height: calc(var(--cloud-visible-height, 100dvh) - 100px); overflow-y: auto; }
+  [role='menuitem'], [role='option'] { min-width: 0; min-height: 40px; }
+  [data-cloud-main] [class*='_row']:has([class*='_tools']) { gap: 8px; }
+  /* Plugins retain every action while long names wrap within their card. */
+  [data-cloud-main] [class*='_page'] { min-width: 0; max-width: 100%; box-sizing: border-box; padding-right: 12px; padding-left: 12px; }
+  [data-cloud-main] [class*='_card'] { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  [data-cloud-main] [class*='_cardHeader'], [data-cloud-main] [class*='_toolbar'] { flex-wrap: wrap; gap: 8px; }
+  [data-cloud-main] [class*='_pluginName'], [data-cloud-main] [class*='_name'] { min-width: 0; overflow-wrap: anywhere; }
+  [data-cloud-main] [class*='_grid'] { grid-template-columns: minmax(0, 1fr); }
+}

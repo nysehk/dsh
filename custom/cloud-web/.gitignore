@@ -1,0 +1,5 @@
+.artifacts/
+*.log
+account.json
+.env
+.env.*

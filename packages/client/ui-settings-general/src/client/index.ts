@@ -37,7 +37,6 @@ import { DeveloperToolsRow, type DeveloperToolsRowInjected } from './DeveloperTo
 import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
-import { WebAccountMenu } from './WebAccountMenu.tsx'
 import { en, zh, type SettingsKey } from './locales.ts'
 
 export type {
@@ -86,12 +85,6 @@ export function apply(ctx: ClientContext): void {
     name: 'settings.general.item', id: 'current-version', order: 100, locale: NS,
   }, CurrentVersionRow))
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-general: dictionaries')
-  const localAccount = (globalThis as typeof globalThis & { __DSH_LOCAL_ACCOUNT__?: string }).__DSH_LOCAL_ACCOUNT__
-  if (!('dshDesktop' in globalThis) && localAccount !== undefined) {
-    ctx.slots.inject('settings.launcher', () => ctx.slots.register({
-      name: 'settings.launcher', locale: NS, inject: () => ({ username: localAccount }),
-    }, WebAccountMenu))
-  }
   const connection = ctx.get('connection') as ConnectionHandle
   const carrier = (globalThis as typeof globalThis & { dshDesktop?: { protocolVersion: number; updates?: DesktopUpdateBridge } }).dshDesktop
   const desktopUpdate = new DesktopUpdateSource(carrier?.protocolVersion === 1 ? carrier.updates : undefined)

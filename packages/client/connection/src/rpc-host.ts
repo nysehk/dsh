@@ -112,12 +112,12 @@ export class HostConnectionService extends Service implements HostConnectionHand
     return rejection === undefined ? { peer: this.operator } : { rejection }
   }
 
-  /** Authenticate an index request through the configured login mode or cookie. */
+  /** Authenticate an index request through the process-token exchange or cookie. */
   authorizeIndex(request: ConnectionIndexRequest, response: ConnectionIndexResponse): boolean {
     return this.browserAuth.authorizeIndex(request, response)
   }
 
-  /** Resolve the clean password-login URL or this process's tokenized URL. */
+  /** Add this process's launch token to the clean application URL. */
   authenticatedUrl(baseUrl: string): string {
     return this.browserAuth.authenticatedUrl(baseUrl)
   }

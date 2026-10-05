@@ -222,7 +222,7 @@ export interface HostConnectionHandle {
   admit(request: ConnectionTrustRequest): PeerAdmission
 
   /**
-   * Authenticate one frontend index request, owning a login redirect, token exchange, or 401.
+   * Authenticate one frontend index request, owning a token redirect or 401.
    * @param request - root or configured-index HTTP request.
    * @param response - response owned when the result is false.
    * @returns true only when the frontend may serve index.html.
@@ -230,9 +230,9 @@ export interface HostConnectionHandle {
   authorizeIndex(request: ConnectionIndexRequest, response: ConnectionIndexResponse): boolean
 
   /**
-   * Resolve the browser entry URL for the configured authentication mode.
+   * Add the fresh process token to an ordinary Web application URL.
    * @param baseUrl - clean application URL whose authority and mount are preserved.
-   * @returns clean URL for password login, otherwise a tokenized URL; a mount proxy strips its prefix before {@link authorizeIndex}.
+   * @returns tokenized URL for initial login; a mount proxy strips its prefix before {@link authorizeIndex}.
    */
   authenticatedUrl(baseUrl: string): string
 }

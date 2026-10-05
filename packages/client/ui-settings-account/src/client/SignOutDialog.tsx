@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Button, IconCloseOutlineRegular, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { AccountKey } from './locales.ts'
-import css from '../../../ui-theme/src/styles/sign-in-dialog.module.css'
+import css from './SignInDialog.module.css'
 
 /** @param props - task impact at opening, localized copy, and account actions. @returns sign-out confirmation. */
 export function SignOutDialog({ running, signOut, close, t }: {

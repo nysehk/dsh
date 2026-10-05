@@ -1,4 +1,3 @@
-import { signInWeb } from './web-login.ts'
 /** Persisted Session recovery across two real dsh server processes on the same port. */
 import { spawn, type ChildProcess } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
@@ -119,7 +118,7 @@ it.each([false, true])('keeps the same revision, Session and page across a serve
 
   const url = await server.start(0)
   const port = Number(new URL(url).port)
-  const authenticated = await signInWeb(url)
+  const authenticated = await fetch(url, { redirect: 'manual' })
   const cookie = authenticated.headers.get('set-cookie')?.split(';', 1)[0]
   if (cookie === undefined) throw new Error('Server did not issue an authentication cookie')
   const rpc = async <T>(endpoint: string, args: object): Promise<T> => {
@@ -170,7 +169,6 @@ it.each([false, true])('keeps the same revision, Session and page across a serve
     await saveFailureShot(page, 'web-server-restart-' + scenarioId)
     await writeFile(join(REPO_ROOT, '.artifacts', 'server-restart-' + scenarioId + '.json'), JSON.stringify({ errors, streamErrors, graphs, server: server.logs() }, null, 2))
   })
-  await page.context().addCookies([{ name: cookie.split('=')[0]!, value: cookie.slice(cookie.indexOf('=') + 1), url }])
   await page.goto(url, { waitUntil: 'load' })
   await page.locator('[data-slot="root"]').waitFor({ state: 'attached', timeout: 20_000 })
   const notice = page.getByRole('button', { name: 'Continue', exact: true })

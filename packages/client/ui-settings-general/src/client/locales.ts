@@ -2,11 +2,6 @@
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
-  'account.menu': '账号菜单',
-  'account.signOut': '退出登录',
-  'account.signOutDescription': '退出登录不会丢失任何数据，你仍可以登录此账号。正在运行的任务会继续执行。',
-  'account.cancel': '取消',
-  'account.failed': '退出登录失败，请重试',
   'trigger': '设置',
   'shortcut.open': '打开设置',
   'desktop.update.available': '新版本',
@@ -48,11 +43,6 @@ export type SettingsKey = keyof typeof zh
 
 /** English dictionary, checked complete against the zh key set. */
 export const en = {
-  'account.menu': 'Account menu',
-  'account.signOut': 'Sign out',
-  'account.signOutDescription': 'Signing out keeps your data. You can sign in again. Running tasks will continue.',
-  'account.cancel': 'Cancel',
-  'account.failed': 'Unable to sign out. Please try again.',
   'trigger': 'Settings',
   'shortcut.open': 'Open settings',
   'desktop.update.available': 'Update',
