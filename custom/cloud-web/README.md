@@ -1,4 +1,4 @@
-# Cloud Web extension v0.1.0
+# Cloud Web extension v0.2.0
 
 English | [中文](README.zh.md)
 

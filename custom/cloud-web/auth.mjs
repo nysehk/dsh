@@ -10,8 +10,8 @@ const equal = (a, b) => a.length === b.length && timingSafeEqual(a, b)
 
 /** Persist a salted verifier, never a plaintext password. Restart to apply account changes. */
 export async function configureAccount(directory, username, password) {
-  if (!username?.trim() || typeof password !== 'string' || password.length < 12) {
-    throw new Error('Set DSH_WEB_USERNAME and DSH_WEB_PASSWORD (at least 12 characters).')
+  if (!username?.trim() || typeof password !== 'string' || password.length < 1) {
+    throw new Error('Set username and password in account config.')
   }
   await mkdir(directory, { recursive: true, mode: 0o700 })
   const salt = randomBytes(32).toString('base64url')

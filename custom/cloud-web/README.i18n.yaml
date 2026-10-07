@@ -2,6 +2,6 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write custom/cloud-web/README.md
-/cloud-web-extension-v0-1-0:
-  en: 33a4034e93a9e1b9
-  zh: d433852f53c67ea4
+/cloud-web-extension-v0-2-0:
+  en: 73031247692ba4f3
+  zh: 280320b57849b9fd

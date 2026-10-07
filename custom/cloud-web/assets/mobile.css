@@ -3,19 +3,19 @@
    used only within specific dialogs/cards; browser regression tests cover them. */
 .cloud-navigation { display: none; }
 .cloud-drawer-backdrop { display: none; }
+.cloud-sidebar-account { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 12px max(8px, env(safe-area-inset-bottom)); }
+.cloud-account-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--dsw-alias-label-secondary); }
+.cloud-sign-out { flex: none; border: 0; border-radius: var(--dsw-radius-sm); background: transparent; color: var(--dsw-alias-label-secondary); font: inherit; font-size: 13px; cursor: pointer; padding: 8px; }
+.cloud-sign-out:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+[data-sidebar-collapsed] .cloud-sidebar-account { display: none; }
 @media (min-width: 768px) {
-  [data-cloud-frame] { grid-template-rows: auto minmax(0, 1fr) auto; }
-  [data-cloud-sidebar] { grid-row: 1 / 3; }
-  [data-cloud-main], [data-cloud-right] { grid-row: 2; }
-  [data-cloud-main] { grid-column: 2; }
-  [data-cloud-right] { grid-column: 3; }
-  [data-shell-bottom] { grid-row: 3; }
-  .cloud-navigation { grid-row: 1; grid-column: 2 / 4; display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 0 12px; background: var(--dsw-alias-bg-base); }
-  .cloud-navigation [data-cloud-toggle], .cloud-navigation [data-cloud-new] { display: none; }
+  /* Keep the upstream two-row frame: full-bleed conversation views rely on
+     its center row filling the available height. Desktop account controls
+     already live in the sidebar, so the mobile navigation stays hidden. */
+  .cloud-navigation { display: none; }
 }
 .cloud-navigation button { border: 0; border-radius: var(--dsw-radius-sm); background: transparent; color: var(--dsw-alias-label-primary); font: inherit; font-size: 13px; cursor: pointer; min-height: 40px; padding: 8px; }
 .cloud-navigation button:hover { background: var(--dsw-alias-interactive-bg-hover); }
-.cloud-account-name { margin-left: auto; min-width: 0; max-width: 100px; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: var(--dsw-alias-label-secondary); }
 @media (max-width: 767px) {
   html, body, #root { width: 100%; min-width: 0; height: 100dvh; margin: 0; -webkit-text-size-adjust: 100%; }
   body { overflow: hidden; }

@@ -1,7 +1,7 @@
 /** Independent compatibility layer; no React, Cordis, or dsh internal imports. */
 const basePath = new URL('../', import.meta.url).pathname
 const labels = navigator.language.toLowerCase().startsWith('zh')
-  ? { open: '展开侧栏', close: '关闭侧栏', new: '新建会话', signOut: '退出登录', error: '退出登录失败，请重试' }
+  ? { open: '', close: '', new: '', signOut: '退出登录', error: '退出登录失败，请重试' }
   : { open: 'Open sidebar', close: 'Close sidebar', new: 'New session', signOut: 'Sign out', error: 'Sign out failed. Try again' }
 const mobile = matchMedia('(max-width: 767px)')
 let frame
@@ -55,16 +55,17 @@ function update() {
     bar = document.createElement('nav')
     bar.className = 'cloud-navigation'
     bar.setAttribute('aria-label', 'DeepSeek Harness')
-    const open = createButton(labels.open, toggle)
+    const open = createButton('☰', toggle)
     open.dataset.cloudToggle = ''
-    const newSession = createButton(labels.new, () => { sourceButtons().newSession?.click(); closeDrawer() })
-    newSession.dataset.cloudNew = ''
-    bar.append(open, newSession)
-    if (session) {
+    open.title = '展开侧栏'
+    bar.append(open)
+    const sidebarAccount = session ? document.createElement('div') : null
+    if (session && sidebarAccount) {
+      sidebarAccount.className = 'cloud-sidebar-account'
       const account = document.createElement('span')
       account.className = 'cloud-account-name'
       account.textContent = session.username
-      bar.append(account)
+      sidebarAccount.append(account)
       const signOut = createButton(labels.signOut, async () => {
         signOut.disabled = true
         try {
@@ -77,7 +78,12 @@ function update() {
         }
       })
       signOut.className = 'cloud-sign-out'
-      bar.append(signOut)
+      sidebarAccount.append(signOut)
+      // The sidebar column clips content after its React root. Put the account
+      // controls inside the root's footer so they remain visible on desktop.
+      const sidebarFooter = sidebar.querySelector('[class*="_footArea"]')
+      const accountHost = sidebarFooter ?? sidebar
+      accountHost.append(sidebarAccount)
     }
     backdrop = createButton(labels.close, closeDrawer)
     backdrop.className = 'cloud-drawer-backdrop'

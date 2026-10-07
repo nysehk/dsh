@@ -16,7 +16,9 @@ test('persists only a salted verifier and verifies exact credentials', async t =
   assert.equal(await auth.verify('operator', 'Test-password-12345'), true)
   assert.equal(await auth.verify('Operator', 'Test-password-12345'), false)
   assert.equal(await auth.verify('operator', 'wrong'), false)
-  await assert.rejects(configureAccount(directory, 'operator', 'short'))
+  await configureAccount(directory, 'operator', 'short')
+  assert.equal(await new Accounts(await readAccount(directory)).verify('operator', 'short'), true)
+  await assert.rejects(configureAccount(directory, 'operator', ''))
 })
 
 test('binds sessions to authority, expires them and bounds memory', () => {

@@ -1,4 +1,4 @@
-# Cloud Web 扩展 v0.1.0
+# Cloud Web 扩展 v0.2.0
 
 [English](README.md) | 中文
 

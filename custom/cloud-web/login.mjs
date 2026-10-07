@@ -1,6 +1,6 @@
 /** Standalone, script-free login page, independent of the dsh frontend build. */
-const zh = { title: '登录 DeepSeek Harness', intro: '登录后继续你的工作', username: '账号', password: '密码', submit: '登录', invalid: '账号或密码不正确', limited: '登录尝试过于频繁，请稍后重试' }
-const en = { title: 'Sign in to DeepSeek Harness', intro: 'Sign in to continue your work', username: 'Username', password: 'Password', submit: 'Sign in', invalid: 'Incorrect username or password', limited: 'Too many sign-in attempts. Try again shortly' }
+const zh = { title: '登录DSH', intro: '', username: '账号', password: '密码', submit: '登录', invalid: '账号或密码不正确', limited: '登录尝试过于频繁，请稍后重试' }
+const en = { title: 'Login DSH', intro: '', username: 'Username', password: 'Password', submit: 'Sign in', invalid: 'Incorrect username or password', limited: 'Too many sign-in attempts. Try again shortly' }
 
 export function loginPage({ csrf, basePath = '/', chinese = false, error }) {
   const t = chinese ? zh : en
